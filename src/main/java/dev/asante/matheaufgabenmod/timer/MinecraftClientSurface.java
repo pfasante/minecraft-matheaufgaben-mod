@@ -1,9 +1,11 @@
 package dev.asante.matheaufgabenmod.timer;
 
 import dev.asante.matheaufgabenmod.generator.Problem;
+import dev.asante.matheaufgabenmod.history.HistoryEntry;
 import dev.asante.matheaufgabenmod.screen.PromptScreen;
 import net.minecraft.client.MinecraftClient;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** Production ClientSurface backed by a real MinecraftClient and the scheduler. */
@@ -11,10 +13,14 @@ public final class MinecraftClientSurface implements ClientSurface {
 
     private final MinecraftClient client;
     private final Supplier<Problem> problemSupplier;
+    private final Consumer<HistoryEntry> historyConsumer;
 
-    public MinecraftClientSurface(MinecraftClient client, Supplier<Problem> problemSupplier) {
+    public MinecraftClientSurface(MinecraftClient client,
+                                  Supplier<Problem> problemSupplier,
+                                  Consumer<HistoryEntry> historyConsumer) {
         this.client = client;
         this.problemSupplier = problemSupplier;
+        this.historyConsumer = historyConsumer;
     }
 
     @Override
@@ -28,6 +34,6 @@ public final class MinecraftClientSurface implements ClientSurface {
 
     @Override
     public void openPromptScreen(Problem problem) {
-        client.setScreen(new PromptScreen(problemSupplier, problem));
+        client.setScreen(new PromptScreen(problemSupplier, problem, historyConsumer));
     }
 }
