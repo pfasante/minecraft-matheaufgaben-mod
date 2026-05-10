@@ -45,12 +45,18 @@ public record HistoryEntry(
         return "unknown";
     }
 
-    /** Tab-separated row. The header row is hard-coded in {@link HistoryLogger}. */
-    public String toTsv() {
+    /**
+     * Fixed-width space-aligned row for human-readable logs. Column widths match
+     * {@link HistoryLogger#HEADER} so the header and rows visually align. Fields
+     * are separated by two spaces; the prompt's internal single spaces survive
+     * so {@code awk -F'\s{2,}'} reads it cleanly.
+     */
+    public String toLine() {
+        String ts = timestamp.format(LOCAL_TIMESTAMP);
         double seconds = duration.toMillis() / 1000.0;
         return String.format(java.util.Locale.ROOT,
-                "%s\t%s\t%s\t%s\t%s\t%s\t%.2f",
-                timestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                "%-19s  %-10s  %-13s  %-9s  %-9s  %-7s  %.2f",
+                ts,
                 type,
                 prompt,
                 expected,
@@ -58,4 +64,7 @@ public record HistoryEntry(
                 correct ? "correct" : "wrong",
                 seconds);
     }
+
+    private static final DateTimeFormatter LOCAL_TIMESTAMP =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 }

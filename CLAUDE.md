@@ -46,11 +46,12 @@ The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-min
   true so SP auto-pauses the world; `shouldCloseOnEsc()` returns false so the kid can't
   Esc-bail. `checkAnswer` is a static helper extracted so it can be unit-tested without
   booting Minecraft.
-- **`history/`** — `HistoryLogger` appends one TSV row per math-task submission to
-  `<minecraft>/config/matheaufgabenmod-history.log`. `HistoryEntry.fromAttempt` derives the
-  generator type by scanning the prompt for the operator character (avoiding an invasive
-  `type` field on `Problem`). IOException-tolerant: a failed log goes to SLF4J `warn` and
-  is swallowed so the prompt flow never crashes on a disk error.
+- **`history/`** — `HistoryLogger` appends one fixed-width row per math-task submission to
+  `<minecraft>/config/matheaufgabenmod-history.log` (column widths chosen for human reading;
+  2-space separators between fields). `HistoryEntry.fromAttempt` derives the generator type
+  by scanning the prompt for the operator character (avoiding an invasive `type` field on
+  `Problem`). IOException-tolerant: a failed log goes to SLF4J `warn` and is swallowed so
+  the prompt flow never crashes on a disk error.
 - **`MatheaufgabenMod.java`** — the only `ClientModInitializer`. Loads config, builds
   the scheduler with one shared `Random`, registers a `ClientTickEvents.END_CLIENT_TICK`
   listener.

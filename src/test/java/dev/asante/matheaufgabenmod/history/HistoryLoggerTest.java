@@ -22,8 +22,13 @@ class HistoryLoggerTest {
                 new Problem("3 + 4", "7"), "7", true, Duration.ofMillis(2300)));
         List<String> lines = Files.readAllLines(file);
         assertEquals(2, lines.size(), "header + 1 row");
-        assertEquals("timestamp\ttype\tprompt\texpected\tgiven\tresult\tduration_s", lines.get(0));
-        String[] cols = lines.get(1).split("\t");
+        // Header is fixed-width with 2-space separators; check by splitting on
+        // 2-or-more whitespace so we don't pin exact padding.
+        String[] hdr = lines.get(0).split("\\s{2,}");
+        assertArrayEquals(
+                new String[]{"timestamp", "type", "prompt", "expected", "given", "result", "duration_s"},
+                hdr);
+        String[] cols = lines.get(1).split("\\s{2,}");
         assertEquals(7, cols.length);
         assertEquals("plus", cols[1]);
         assertEquals("3 + 4", cols[2]);
@@ -43,8 +48,8 @@ class HistoryLoggerTest {
                 new Problem("3 + 4", "7"), "7", true, Duration.ofMillis(900)));
         List<String> lines = Files.readAllLines(file);
         assertEquals(3, lines.size(), "header + 2 rows");
-        assertTrue(lines.get(1).contains("\twrong\t"));
-        assertTrue(lines.get(2).contains("\tcorrect\t"));
+        assertTrue(lines.get(1).contains(" wrong "));
+        assertTrue(lines.get(2).contains(" correct "));
     }
 
     @Test
@@ -79,7 +84,7 @@ class HistoryLoggerTest {
         logger.logAttempt(HistoryEntry.fromAttempt(
                 new Problem("3 + 4", "7"), "7", true, Duration.ofMillis(12345)));
         List<String> lines = Files.readAllLines(file);
-        String[] cols = lines.get(1).split("\t");
+        String[] cols = lines.get(1).split("\\s{2,}");
         assertEquals("12.35", cols[6]);  // 12345ms → 12.345s → "12.35"
     }
 

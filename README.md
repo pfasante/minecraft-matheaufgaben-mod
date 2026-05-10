@@ -44,10 +44,11 @@ optional remainders).
 ## History log
 
 The mod appends every math-task submission to `<minecraft>/config/matheaufgabenmod-history.log` as
-tab-separated rows with a header. Columns: `timestamp`, `type`, `prompt`, `expected`, `given`,
-`result`, `duration_s`. Useful for spotting which problem types or operations the kid struggles
-with. The file is append-only and survives Minecraft restarts; delete it manually to reset the
-history.
+fixed-width space-aligned rows with a header. Columns: `timestamp`, `type`, `prompt`, `expected`,
+`given`, `result`, `duration_s`. Useful for spotting which problem types or operations the kid
+struggles with. The file is append-only and survives Minecraft restarts; delete it manually to
+reset the history. For machine reading, split on two or more whitespace characters (e.g.
+`awk -F'\s{2,}' ...`) — the prompt's internal single spaces are preserved.
 
 ## Build
 

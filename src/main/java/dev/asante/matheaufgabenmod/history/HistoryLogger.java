@@ -11,13 +11,15 @@ import java.nio.file.StandardOpenOption;
 
 /**
  * Append-only history log writer. Lazily creates the file on first call,
- * writing a TSV header row before any data. On {@link IOException}, logs to
- * SLF4J and swallows — a failed log must not crash the prompt flow.
+ * writing a fixed-width header row before any data. On {@link IOException},
+ * logs to SLF4J and swallows — a failed log must not crash the prompt flow.
  */
 public final class HistoryLogger {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("matheaufgabenmod");
-    static final String HEADER = "timestamp\ttype\tprompt\texpected\tgiven\tresult\tduration_s";
+    static final String HEADER = String.format(
+            "%-19s  %-10s  %-13s  %-9s  %-9s  %-7s  %s",
+            "timestamp", "type", "prompt", "expected", "given", "result", "duration_s");
 
     private final Path file;
 
@@ -32,7 +34,7 @@ public final class HistoryLogger {
                 Files.createDirectories(parent);
             }
             boolean writeHeader = !Files.exists(file) || Files.size(file) == 0;
-            String line = (writeHeader ? HEADER + "\n" : "") + entry.toTsv() + "\n";
+            String line = (writeHeader ? HEADER + "\n" : "") + entry.toLine() + "\n";
             Files.writeString(file, line, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
