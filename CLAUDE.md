@@ -94,3 +94,4 @@ These features are out of scope for v1 (per the design spec's "Non-goals" list) 
 - [x] ~~Logging feature: log each math task solved or failed, including timestamp.~~ Shipped: see `history/` package and the "History log" README section.
 - [ ] Configurable play-budget timer: allow Minecraft to be played with normal math-task settings for X minutes (configurable) before any math tasks kick in.
 - [ ] Time-limited prompts: after the initial X-minute play budget, math tasks are time-limited and must be solved within Y seconds; on timeout, generate a new task and shorten the interval between new tasks.
+- [ ] Configurable tasks-per-iteration: make the number of math tasks that must be completed in each prompt interruption configurable (default to 1). Currently `PromptScheduler.pickProblem` takes only the first problem from `gen.generate(...)` regardless of the spec's `count`; this TODO would chain N prompts before closing the screen.
