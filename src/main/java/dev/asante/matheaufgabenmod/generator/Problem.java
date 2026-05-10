@@ -1,4 +1,3 @@
-// src/main/java/dev/asante/matheaufgabenmod/generator/Problem.java
 package dev.asante.matheaufgabenmod.generator;
 
 /**

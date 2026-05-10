@@ -1,4 +1,3 @@
-// src/main/java/dev/asante/matheaufgabenmod/generator/Generator.java
 package dev.asante.matheaufgabenmod.generator;
 
 import java.util.List;

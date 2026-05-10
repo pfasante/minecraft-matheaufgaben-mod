@@ -1,4 +1,3 @@
-// src/main/java/dev/asante/matheaufgabenmod/generator/ConfigException.java
 package dev.asante.matheaufgabenmod.generator;
 
 /**
