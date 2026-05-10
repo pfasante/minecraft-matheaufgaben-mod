@@ -4,7 +4,7 @@
 
 **Goal:** Build a Fabric client-side mod for Minecraft Java Edition 1.21.x that interrupts singleplayer gameplay every X minutes with a math-problem prompt; the kid must answer correctly to resume.
 
-**Architecture:** Layered Java packages mirroring the schulaufgaben-generator CLI's seams — `generator/` (pure functions), `config/` (JSON file + section-spec parser), `timer/` (tick-based scheduler), `screen/` (Minecraft Screen subclass). The four generators (`plus`, `minus`, `einmaleins`, `division`) are ports of the Python originals with byte-for-byte semantic parity. ModInitializer wires everything once at client startup.
+**Architecture:** Layered Java packages with one clear responsibility each — `generator/` (pure functions of `(Random, Params) → List<Problem>` with no Minecraft dependency), `config/` (JSON file + `type:k=v,k=v` section-spec parser), `timer/` (tick-based scheduler that opens prompts at the configured interval), `screen/` (Minecraft `Screen` subclass that pauses singleplayer and refuses to close on Esc). The four generators (`plus`, `minus`, `einmaleins`, `division`) implement deterministic problem generation with explicit constraints (range, carry/borrow, factor rows, divisor sets). `MatheaufgabenMod` (`ClientModInitializer`) wires everything once at client startup.
 
 **Tech Stack:** Java 21, Fabric Loom, Fabric Loader 0.16.x, Fabric API 0.110.x for MC 1.21.4, Gson (bundled), JUnit 5 for tests.
 
@@ -337,8 +337,12 @@ public interface Generator {
      * RNG. Returns a list whose order depends on the RNG state.
      *
      * <p>Implementations narrow {@code params} from {@code Object} via an
-     * {@code instanceof} check at the top of the method — Java's Protocol
-     * contravariance equivalent.
+     * {@code instanceof} check at the top of the method. The interface uses
+     * {@code Object} (rather than a generic type parameter on {@link Generator})
+     * because the {@link Registry} stores heterogeneous generator instances
+     * under string keys; making the registry generic over the params type
+     * would either erase to {@code Object} anyway or force callers to know
+     * each concrete params type at the lookup site.
      */
     List<Problem> generate(Random rng, Object params);
 
@@ -390,7 +394,7 @@ git commit -m "Add Problem record, Generator interface, ConfigException"
 - Create: `src/main/java/dev/asante/matheaufgabenmod/config/SectionSpec.java`
 - Create: `src/test/java/dev/asante/matheaufgabenmod/config/SectionSpecTest.java`
 
-Port of `parse_section_spec` from the CLI. Same grammar, same rejection rules.
+Parser for the section-spec mini-grammar `type:k=v[,k=v...]`. Empty body after the colon is allowed (zero params). Missing colon, empty type, malformed `k=v` (no `=`), empty key, and duplicate key all raise `ConfigException` with a descriptive message.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -486,8 +490,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Parsed section spec of the form {@code type:k=v,k=v}. Same grammar as the
- * schulaufgaben-generator CLI's {@code parse_section_spec}.
+ * Parsed section spec of the form {@code type:k=v[,k=v...]}.
+ *
+ * <p>An empty body after the colon yields an empty params map. Missing colon,
+ * empty type, malformed {@code k=v} pairs, empty keys, and duplicate keys all
+ * raise {@link ConfigException} with a descriptive message.
  */
 public record SectionSpec(String type, Map<String, String> params) {
 
@@ -553,7 +560,7 @@ git commit -m "Add SectionSpec parser (type:k=v,k=v)"
 - Create: `src/main/java/dev/asante/matheaufgabenmod/generator/PlusGenerator.java`
 - Create: `src/test/java/dev/asante/matheaufgabenmod/generator/PlusGeneratorTest.java`
 
-Port of `plus.py`. Same fail-fast capacity contract via precomputed `CARRY_CAPACITY`.
+Addition generator. Generates `count` distinct problems `a + b` on `0 ≤ a, b` with `a + b ≤ range`, optionally constrained to require or avoid carrying. The fail-fast contract: `parseParams` rejects impossible counts (e.g. asking for more carry-yes pairs than exist for a small range) **before** `generate` runs, by consulting an exact precomputed `CARRY_CAPACITY` table. Closed-form heuristics like `total/2` overestimate for small ranges and would let `generate` blow up at runtime — enumeration of the exact counts is the only sound approach for the four supported ranges.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -663,8 +670,11 @@ class PlusGeneratorTest {
 
     @Test
     void carryYesTightCapacityCaughtInParseParams() {
-        // Regression mirror of the schulaufgaben CLI fix: range=10 carry=yes has
-        // only 9 distinct pairs. parseParams must reject count=10 before generate.
+        // range=10 carry=yes admits only 9 distinct (a, b) pairs (enumerated:
+        // 1+9, 2+8, 2+9, 3+7, 3+8, 3+9, 4+6, 4+7, 4+8 — and stops there because
+        // a+b must also be <= 10). parseParams must reject count=10 *before*
+        // generate runs; a closed-form heuristic of total/2 = 33 would let
+        // generate fail at runtime.
         ConfigException ex = assertThrows(ConfigException.class,
                 () -> gen.parseParams(Map.of("range", "10", "count", "10", "carry", "yes")));
         assertTrue(ex.getMessage().contains("exceeds"));
@@ -746,7 +756,12 @@ public final class PlusGenerator implements Generator {
 
     private record CarryKey(int range, CarryMode mode) {}
 
-    /** Exact pair-count table for non-mixed carry — see _CARRY_CAPACITY in plus.py. */
+    /**
+     * Exact (a, b) pair-count table per (range, carry mode), populated at class load.
+     * The mixed-mode capacity is closed-form ((n+1)(n+2)/2) and computed inline; the
+     * yes/no modes need enumeration because closed-form heuristics overestimate for
+     * small ranges and break the fail-fast contract.
+     */
     private static final Map<CarryKey, Integer> CARRY_CAPACITY = computeCarryCapacities();
 
     @Override
@@ -890,7 +905,7 @@ git commit -m "Add plus generator with carry/range/uniqueness constraints"
 - Create: `src/main/java/dev/asante/matheaufgabenmod/generator/MinusGenerator.java`
 - Create: `src/test/java/dev/asante/matheaufgabenmod/generator/MinusGeneratorTest.java`
 
-Port of `minus.py`. The U+2212 minus sign in the prompt.
+Subtraction generator. Generates `count` distinct problems `a − b` (using U+2212 MINUS SIGN, not ASCII hyphen) on `0 ≤ a, b ≤ range`, optionally constraining whether borrowing is required (digit-wise) and whether negative results are allowed. Same fail-fast capacity contract as the addition generator: an exact `BORROW_CAPACITY` table keyed by `(range, borrow mode, negative results)` is consulted in `parseParams`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2794,9 +2809,10 @@ gameplay every X minutes with a math-problem prompt. The kid must answer correct
 resume play; wrong answers re-prompt with a fresh problem. Parent configures the interval
 and the problem types via a JSON config file.
 
-Sibling project: [`schulaufgaben-generator`](../schulaufgaben-generator) — same problem
-catalogue (plus / minus / einmaleins / division), same section-spec grammar, same
-fail-fast capacity contract.
+The mod ships four problem types — addition (`plus`), subtraction (`minus`),
+multiplication tables (`einmaleins`), and division (`division`) — each with explicit
+configurable constraints (range, carry/borrow requirement, factor rows, divisor sets,
+optional remainders).
 
 ## Install
 
@@ -2824,8 +2840,10 @@ fail-fast capacity contract.
 ```
 
 - `intervalMinutes` — minutes of *active play* between prompts (timer pauses with the world).
-- `sectionSpecs` — list of `type:k=v,k=v` strings using the same grammar as the CLI.
-  Each interruption picks one spec at random and generates one problem.
+- `sectionSpecs` — list of `type:k=v[,k=v...]` strings. Each interruption picks one spec
+  uniformly at random and generates one problem from it. Run `./gradlew test` and read
+  the per-generator test classes for the supported parameters of each type, or read
+  `Generator.describe()` output (printed at mod load if the config has invalid specs).
 
 ## Build
 
@@ -2851,8 +2869,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Fabric client-side mod for Minecraft Java Edition 1.21.x. Interrupts singleplayer
 gameplay every X minutes with a math prompt; the kid must answer correctly to resume.
-Sibling project: `~/werkbank/schulaufgaben-generator` — same problem catalogue, ported
-to Java with byte-for-byte semantic parity.
+Four problem types (plus, minus, einmaleins, division), each parameterised through a
+`type:k=v[,k=v...]` section spec in the JSON config.
 
 The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-minecraft-matheaufgaben-mod-design.md` — read that before proposing scope expansions.
 
@@ -2871,12 +2889,16 @@ The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-min
 - **`generator/`** — pure functions, no Minecraft imports. `Generator` interface; one
   implementation per problem type (`PlusGenerator`, `MinusGenerator`, `EinmaleinsGenerator`,
   `DivisionGenerator`). `Registry` exposes them by name. Each `parseParams` rejects
-  impossible counts before `generate` runs (the same fail-fast contract as the CLI;
-  `PlusGenerator` and `MinusGenerator` precompute exact-capacity tables in static blocks).
-- **`config/`** — `SectionSpec.parse` is a verbatim port of `parse_section_spec` from
-  the CLI. `ModConfig` is a frozen record with `intervalMinutes` + `sectionSpecs`.
-  `ConfigLoader` reads JSON via Gson, falls back to defaults on any error rather than
-  disabling the mod.
+  impossible counts before `generate` runs (the fail-fast contract); `PlusGenerator`
+  and `MinusGenerator` precompute exact-capacity tables in static blocks because closed-
+  form heuristics overestimate for small ranges and would let `generate` blow up at
+  runtime.
+- **`config/`** — `SectionSpec.parse` parses the `type:k=v[,k=v...]` grammar with
+  descriptive `ConfigException` messages on every malformation. `ModConfig` is a frozen
+  record with `intervalMinutes` + `sectionSpecs`. `ConfigLoader` reads JSON via Gson,
+  falls back to defaults on any error rather than disabling the mod (a child whose
+  prompts stop firing because of a config typo is a worse outcome than running with
+  defaults).
 - **`timer/`** — `PromptScheduler` is unit-testable: it depends on a narrow
   `ClientSurface` interface (`hasWorld`, `isPaused`, `currentScreenIsPrompt`,
   `openPromptScreen`) rather than `MinecraftClient` directly. `MinecraftClientSurface`
@@ -2898,9 +2920,11 @@ that requires a live `MinecraftClient` is verified manually via `./gradlew runCl
 ## Testing conventions
 
 - One test class per generator (`PlusGeneratorTest` etc.). Each suite covers count
-  exactness, constraint compliance, correctness (re-derive from prompt), uniqueness,
-  determinism, capacity-overrun errors, parameter validation. Mirrors the
-  schulaufgaben-generator suites.
+  exactness, constraint compliance (range / carry / borrow / result_max / divisor set),
+  correctness (re-derive the answer from the parsed prompt and compare), uniqueness
+  within a batch, determinism (same `Random(seed)` produces the same `List<Problem>`),
+  capacity-overrun raises in `parseParams`, and parameter validation (unknown / missing
+  / out-of-range values throw `ConfigException`).
 - The scheduler is tested via `FakeClient` (a `ClientSurface` test double) — never
   against the real Minecraft runtime.
 - The Screen has unit tests for the `checkAnswer` helper only; layout / rendering /
