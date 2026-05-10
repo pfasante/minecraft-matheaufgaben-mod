@@ -1,38 +1,91 @@
-# CLAUDE.md (bootstrap)
+# CLAUDE.md
 
-This is a *pre-execution* CLAUDE.md — a small orientation note for a fresh Claude Code session that picks up this project to execute the implementation plan.
-Task 13 of the plan replaces this file with an architecture-focused permanent version.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project
 
-A Fabric client-side mod for Minecraft Java Edition 1.21.x: interrupts singleplayer gameplay every X minutes with a math-problem prompt that the kid must solve to resume play.
+A Fabric client-side mod for Minecraft Java Edition 1.21.x. Interrupts singleplayer
+gameplay every X minutes with a math prompt; the kid must answer correctly to resume.
+Four problem types (plus, minus, einmaleins, division), each parameterised through a
+`type:k=v[,k=v...]` section spec in the JSON config.
 
-The mod ships four problem types — addition (`plus`), subtraction (`minus`), multiplication tables (`einmaleins`), and division (`division`) — each parameterised through a `type:k=v[,k=v...]` section spec entry in the JSON config.
+The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-minecraft-matheaufgaben-mod-design.md` — read that before proposing scope expansions.
 
-## What to do first
+## Common commands
 
-1. **Read the plan, not the spec.**
-   The plan (`docs/superpowers/plans/2026-05-10-minecraft-matheaufgaben-mod.md`) has every file, every code block, every command, every commit message — it is fully self-contained.
-   The spec (`docs/superpowers/specs/2026-05-10-minecraft-matheaufgaben-mod-design.md`) is the design rationale — useful if you encounter a judgement call the plan didn't anticipate, otherwise the plan supersedes it.
+```sh
+./gradlew build                           # compile + test + assemble jar
+./gradlew test                            # JUnit only (fast)
+./gradlew test --tests PlusGeneratorTest  # one suite
+./gradlew runClient                       # launch dev Minecraft instance
+./gradlew genSources                      # decompile MC sources for IDE navigation
+```
 
-2. **Create a feature branch before Task 1.**
-   ```sh
-   git checkout -b feat/mvp
-   ```
-   The plan's commits land there, then merge back to `main` at the end via `superpowers:finishing-a-development-branch`.
+## Architecture (the seams that matter)
 
-3. **Execution mode: subagent-driven.**
-   Invoke `superpowers:subagent-driven-development`, dispatch one implementer subagent per task, two-stage review (spec compliance, then code quality) between tasks.
+- **`generator/`** — pure functions, no Minecraft imports. `Generator` interface; one
+  implementation per problem type (`PlusGenerator`, `MinusGenerator`, `EinmaleinsGenerator`,
+  `DivisionGenerator`). `Registry` exposes them by name. Each `parseParams` rejects
+  impossible counts before `generate` runs (the fail-fast contract); `PlusGenerator`
+  and `MinusGenerator` precompute exact-capacity tables in static blocks because closed-
+  form heuristics overestimate for small ranges and would let `generate` blow up at
+  runtime.
+- **`config/`** — `SectionSpec.parse` parses the `type:k=v[,k=v...]` grammar with
+  descriptive `ConfigException` messages on every malformation. `ModConfig` is a frozen
+  record with `intervalMinutes` + `sectionSpecs`. `ConfigLoader` reads JSON via Gson,
+  falls back to defaults on any error rather than disabling the mod (a child whose
+  prompts stop firing because of a config typo is a worse outcome than running with
+  defaults).
+- **`timer/`** — `PromptScheduler` is unit-testable: it depends on a narrow
+  `ClientSurface` interface (`hasWorld`, `isPaused`, `currentScreenIsPrompt`,
+  `openPromptScreen`) rather than `MinecraftClient` directly. `MinecraftClientSurface`
+  is the production implementation. The scheduler counts only active-play ticks (paused
+  game freezes the timer automatically because `client.isPaused()` returns true while
+  any Screen — including ours — is open).
+- **`screen/`** — `PromptScreen` extends Minecraft's `Screen`. `shouldPause()` returns
+  true so SP auto-pauses the world; `shouldCloseOnEsc()` returns false so the kid can't
+  Esc-bail. `checkAnswer` is a static helper extracted so it can be unit-tested without
+  booting Minecraft.
+- **`MatheaufgabenMod.java`** — the only `ClientModInitializer`. Loads config, builds
+  the scheduler with one shared `Random`, registers a `ClientTickEvents.END_CLIENT_TICK`
+  listener.
 
-## Resuming a partially-completed plan
+The hard rule: **generators own answer correctness; the screen renders; the scheduler
+schedules. Tests exist at every seam except the `Screen` rendering path.** Anything
+that requires a live `MinecraftClient` is verified manually via `./gradlew runClient`.
 
-If `git log feat/mvp` already shows some plan commits, the project is mid-execution.
-Determine which task to resume from by comparing the latest commit message to the plan's task titles, then dispatch the next task's implementer.
-Don't re-run completed tasks — the implementer subagents are not idempotent against a non-empty tree.
+## Testing conventions
 
-## What is *not* in scope
+- One test class per generator (`PlusGeneratorTest` etc.). Each suite covers count
+  exactness, constraint compliance (range / carry / borrow / result_max / divisor set),
+  correctness (re-derive the answer from the parsed prompt and compare), uniqueness
+  within a batch, determinism (same `Random(seed)` produces the same `List<Problem>`),
+  capacity-overrun raises in `parseParams`, and parameter validation (unknown / missing
+  / out-of-range values throw `ConfigException`).
+- The scheduler is tested via `FakeClient` (a `ClientSurface` test double) — never
+  against the real Minecraft runtime.
+- The Screen has unit tests for the `checkAnswer` helper only; layout / rendering /
+  Enter-key handling is verified manually via `runClient`.
 
-See the spec's "Non-goals (v1)" section.
-TL;DR: singleplayer-only, client-only, no in-game GUI, no multi-version support, no progress tracking, no skip buttons, German-only UI strings.
+## Adding a new problem type
 
-If a subagent asks "should I add X" and X isn't named in the plan, the answer is almost certainly "no" — the spec deliberately scoped this small.
+1. Create `generator/<Name>Generator.java` implementing `Generator`. Mirror the
+   structure of `PlusGenerator` (validation, params record, capacity, generate).
+2. Add `registerInto(map, new <Name>Generator())` to the `Registry` static block.
+3. Write `test/<Name>GeneratorTest.java` mirroring an existing test class.
+4. `./gradlew test`.
+
+## What is *not* in scope for v1
+
+Multiplayer, in-game GUI / ModMenu, hot-reload, translations beyond German, Sodium/Iris
+shims, difficulty escalation, quiet hours, hint system, skip buttons, custom textures,
+Modrinth/CurseForge publishing. Adding any of these is a spec discussion. The full list
+lives in the design spec under "Non-goals (v1)".
+
+## Post-MVP TODOs
+
+These features are out of scope for v1 (per the design spec's "Non-goals" list) but the project owner wants them tracked for future iterations:
+
+- [ ] Logging feature: log each math task solved or failed, including timestamp.
+- [ ] Configurable play-budget timer: allow Minecraft to be played with normal math-task settings for X minutes (configurable) before any math tasks kick in.
+- [ ] Time-limited prompts: after the initial X-minute play budget, math tasks are time-limited and must be solved within Y seconds; on timeout, generate a new task and shorten the interval between new tasks.
