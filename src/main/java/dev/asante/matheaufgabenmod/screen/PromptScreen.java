@@ -1,6 +1,7 @@
 package dev.asante.matheaufgabenmod.screen;
 
 import dev.asante.matheaufgabenmod.generator.Problem;
+import dev.asante.matheaufgabenmod.history.HistoryEntry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -9,19 +10,26 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
+import java.time.Duration;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class PromptScreen extends Screen {
 
     private final Supplier<Problem> problemSupplier;
+    private final Consumer<HistoryEntry> historyConsumer;
     private Problem currentProblem;
     private TextFieldWidget inputField;
     private Text feedback = Text.empty();
+    private long attemptStartNanos;
 
-    public PromptScreen(Supplier<Problem> problemSupplier, Problem initialProblem) {
+    public PromptScreen(Supplier<Problem> problemSupplier, Problem initialProblem,
+                        Consumer<HistoryEntry> historyConsumer) {
         super(Text.translatable("matheaufgabenmod.prompt.title"));
         this.problemSupplier = problemSupplier;
         this.currentProblem = initialProblem;
+        this.historyConsumer = historyConsumer;
+        this.attemptStartNanos = System.nanoTime();
     }
 
     public static boolean checkAnswer(Problem problem, String guess) {
@@ -66,13 +74,19 @@ public final class PromptScreen extends Screen {
     }
 
     private void onSubmit() {
-        if (checkAnswer(currentProblem, inputField.getText())) {
+        String given = inputField.getText();
+        boolean correct = checkAnswer(currentProblem, given);
+        Duration duration = Duration.ofNanos(System.nanoTime() - attemptStartNanos);
+        historyConsumer.accept(HistoryEntry.fromAttempt(currentProblem, given, correct, duration));
+
+        if (correct) {
             MinecraftClient.getInstance().setScreen(null);
             return;
         }
         currentProblem = problemSupplier.get();
         inputField.setText("");
         feedback = Text.translatable("matheaufgabenmod.prompt.wrong");
+        attemptStartNanos = System.nanoTime();
     }
 
     @Override

@@ -2,6 +2,7 @@ package dev.asante.matheaufgabenmod;
 
 import dev.asante.matheaufgabenmod.config.ConfigLoader;
 import dev.asante.matheaufgabenmod.config.ModConfig;
+import dev.asante.matheaufgabenmod.history.HistoryLogger;
 import dev.asante.matheaufgabenmod.timer.ClientSurface;
 import dev.asante.matheaufgabenmod.timer.MinecraftClientSurface;
 import dev.asante.matheaufgabenmod.timer.PromptScheduler;
@@ -21,18 +22,22 @@ public final class MatheaufgabenMod implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        Path configPath = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID + ".json");
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+        Path configPath = configDir.resolve(MOD_ID + ".json");
+        Path historyPath = configDir.resolve(MOD_ID + "-history.log");
         ModConfig config = ConfigLoader.loadOrCreate(configPath);
+        HistoryLogger historyLogger = new HistoryLogger(historyPath);
 
         Random rng = new Random();
         PromptScheduler scheduler = new PromptScheduler(config, rng);
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            ClientSurface surface = new MinecraftClientSurface(client, scheduler::pickProblem);
+            ClientSurface surface = new MinecraftClientSurface(
+                    client, scheduler::pickProblem, historyLogger::logAttempt);
             scheduler.onTick(surface);
         });
 
-        LOGGER.info("[{}] initialised — interval={} min, {} section spec(s)",
-                MOD_ID, config.intervalMinutes(), config.sectionSpecs().size());
+        LOGGER.info("[{}] initialised — interval={} min, {} section spec(s), history={}",
+                MOD_ID, config.intervalMinutes(), config.sectionSpecs().size(), historyPath);
     }
 }
