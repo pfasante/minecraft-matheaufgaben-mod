@@ -38,8 +38,8 @@ optional remainders).
 - `intervalMinutes` — minutes of *active play* between prompts (timer pauses with the world).
 - `sectionSpecs` — list of `type:k=v[,k=v...]` strings. Each interruption picks one spec
   uniformly at random and generates one problem from it. Run `./gradlew test` and read
-  the per-generator test classes for the supported parameters of each type, or read
-  `Generator.describe()` output (printed at mod load if the config has invalid specs).
+  the per-generator test classes for the supported parameters of each type, or consult
+  the `describe()` method on each generator class in source.
 
 ## Build
 
