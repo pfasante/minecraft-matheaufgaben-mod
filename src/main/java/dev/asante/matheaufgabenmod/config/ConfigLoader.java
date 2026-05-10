@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import dev.asante.matheaufgabenmod.generator.ConfigException;
+import dev.asante.matheaufgabenmod.generator.Registry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,10 @@ public final class ConfigLoader {
         if (raw.sectionSpecs != null) {
             for (String spec : raw.sectionSpecs) {
                 try {
-                    SectionSpec.parse(spec);
+                    SectionSpec parsed = SectionSpec.parse(spec);
+                    if (!Registry.contains(parsed.type())) {
+                        throw new ConfigException("unknown problem type '" + parsed.type() + "'");
+                    }
                     validSpecs.add(spec);
                 } catch (ConfigException e) {
                     LOGGER.warn("[matheaufgabenmod] dropping invalid section spec '{}': {}",

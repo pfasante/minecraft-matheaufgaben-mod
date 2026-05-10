@@ -82,6 +82,25 @@ class ConfigLoaderTest {
     }
 
     @Test
+    void dropsSpecsWithUnknownGeneratorType(@TempDir Path tmp) throws IOException {
+        Path configFile = tmp.resolve("matheaufgabenmod.json");
+        Files.writeString(configFile, """
+                {
+                  "intervalMinutes": 5,
+                  "sectionSpecs": [
+                    "plus:range=100,count=1",
+                    "unknowntype:count=1",
+                    "minus:range=100,count=1"
+                  ]
+                }
+                """);
+        ModConfig cfg = ConfigLoader.loadOrCreate(configFile);
+        assertEquals(2, cfg.sectionSpecs().size());
+        assertTrue(cfg.sectionSpecs().contains("plus:range=100,count=1"));
+        assertTrue(cfg.sectionSpecs().contains("minus:range=100,count=1"));
+    }
+
+    @Test
     void modConfigDefaultIsValid() {
         // Each default spec should parse successfully.
         for (String spec : ModConfig.DEFAULT.sectionSpecs()) {
