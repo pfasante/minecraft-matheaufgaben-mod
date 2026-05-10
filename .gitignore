@@ -16,6 +16,7 @@ bin/
 
 # Fabric Loom
 **/run/
+logs/
 
 # OS
 .DS_Store
