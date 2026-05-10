@@ -57,8 +57,8 @@ public final class PromptScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Enter (key 257) submits.
-        if (keyCode == 257) {
+        // Main Enter (257) and numpad Enter (335) both submit.
+        if (keyCode == 257 || keyCode == 335) {
             onSubmit();
             return true;
         }
