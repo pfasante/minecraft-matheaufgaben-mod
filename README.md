@@ -50,6 +50,18 @@ struggles with. The file is append-only and survives Minecraft restarts; delete 
 reset the history. For machine reading, split on two or more whitespace characters (e.g.
 `awk -F'\s{2,}' ...`) — the prompt's internal single spaces are preserved.
 
+## Play-budget timer
+
+On entering a world, the mod asks for a play-time budget in minutes (1–1440). A HUD in the
+top-right shows the remaining time. When the budget runs out, a "Zeit ist um!" popup appears
+that can be dismissed; the kid then has a 5-minute grace period (HUD turns red, counting down)
+to reach a save point. After grace, a forced-quit popup appears with only a "Spiel beenden"
+button — clicking it triggers Minecraft's normal save-and-quit. No data is lost.
+
+The budget pauses automatically whenever the game is paused (game menu, math prompt, the
+budget popups themselves). Leaving the world to title and re-entering re-prompts for a fresh
+budget — there is no per-day cap in v1.
+
 ## Build
 
 ```sh
