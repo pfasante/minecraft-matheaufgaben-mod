@@ -1,5 +1,8 @@
 package dev.asante.matheaufgabenmod;
 
+import dev.asante.matheaufgabenmod.budget.BudgetHudRenderer;
+import dev.asante.matheaufgabenmod.budget.BudgetTracker;
+import dev.asante.matheaufgabenmod.budget.MinecraftBudgetSurface;
 import dev.asante.matheaufgabenmod.config.ConfigLoader;
 import dev.asante.matheaufgabenmod.config.ModConfig;
 import dev.asante.matheaufgabenmod.history.HistoryLogger;
@@ -25,19 +28,31 @@ public final class MatheaufgabenMod implements ClientModInitializer {
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configPath = configDir.resolve(MOD_ID + ".json");
         Path historyPath = configDir.resolve(MOD_ID + "-history.log");
+
         ModConfig config = ConfigLoader.loadOrCreate(configPath);
         HistoryLogger historyLogger = new HistoryLogger(historyPath);
 
         Random rng = new Random();
         PromptScheduler scheduler = new PromptScheduler(config, rng);
 
+        // Budget timer wiring.
+        BudgetTracker budgetTracker = new BudgetTracker();
+        BudgetHudRenderer budgetHud = new BudgetHudRenderer();
+        budgetHud.register();
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            ClientSurface surface = new MinecraftClientSurface(
+            // Math-prompt scheduler tick (unchanged).
+            ClientSurface promptSurface = new MinecraftClientSurface(
                     client, scheduler::pickProblem, historyLogger::logAttempt);
-            scheduler.onTick(surface);
+            scheduler.onTick(promptSurface);
+
+            // Budget tick.
+            MinecraftBudgetSurface budgetSurface = new MinecraftBudgetSurface(
+                    client, budgetHud.stateHolder());
+            budgetTracker.onTick(budgetSurface);
         });
 
-        LOGGER.info("[{}] initialised — interval={} min, {} section spec(s), history={}",
+        LOGGER.info("[{}] initialised — interval={} min, {} section spec(s), history={}, budget-timer enabled",
                 MOD_ID, config.intervalMinutes(), config.sectionSpecs().size(), historyPath);
     }
 }
