@@ -2,6 +2,7 @@ package dev.asante.matheaufgabenmod.generator;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -130,5 +131,39 @@ class MinusGeneratorTest {
         ConfigException ex = assertThrows(ConfigException.class,
                 () -> gen.parseParams(Map.of("range", "100", "count", "5", "borrow", "maybe")));
         assertTrue(ex.getMessage().contains("borrow"));
+    }
+
+    @Test
+    void fullCapacityYieldsAllValidPairsExactlyOnce() {
+        // At capacity, shuffle+take-first-N becomes a permutation of the full
+        // candidate set — every valid pair appears exactly once. Non-negative case:
+        // valid pairs are {(a, b) : 0 <= b <= a <= 10}, capacity = 66.
+        Object p = gen.parseParams(Map.of("range", "10", "count", "66"));
+        List<Problem> problems = gen.generate(new Random(42), p);
+        Set<String> prompts = new HashSet<>();
+        for (Problem prob : problems) prompts.add(prob.prompt());
+        assertEquals(66, prompts.size(), "every valid pair should appear exactly once at capacity");
+    }
+
+    @Test
+    void empiricalDistributionIsApproximatelyUniform() {
+        // Sample 1000 problems at range=10 (66 valid pairs in the a>=b triangle).
+        // Each pair expected ~15 times under uniform sampling. The old algorithm
+        // would over-represent (large_a, 0) pairs by 6x at range=10; this test
+        // catches any pair that appears more than 3x the expected count.
+        Object p = gen.parseParams(Map.of("range", "10", "count", "1"));
+        Map<String, Integer> counts = new HashMap<>();
+        Random rng = new Random(42);
+        int trials = 1000;
+        for (int i = 0; i < trials; i++) {
+            Problem prob = gen.generate(rng, p).get(0);
+            counts.merge(prob.prompt(), 1, Integer::sum);
+        }
+        double expected = trials / 66.0;
+        for (Map.Entry<String, Integer> e : counts.entrySet()) {
+            assertTrue(e.getValue() < expected * 3,
+                    "pair " + e.getKey() + " appeared " + e.getValue()
+                            + " times (expected ~" + expected + ")");
+        }
     }
 }

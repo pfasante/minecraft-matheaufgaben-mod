@@ -2,6 +2,7 @@ package dev.asante.matheaufgabenmod.generator;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -131,5 +132,47 @@ class PlusGeneratorTest {
         ConfigException ex = assertThrows(ConfigException.class,
                 () -> gen.parseParams(Map.of("range", "100", "count", "5", "carry", "maybe")));
         assertTrue(ex.getMessage().contains("carry"));
+    }
+
+    @Test
+    void fullCapacityYieldsAllValidPairsExactlyOnce() {
+        // At capacity, the shuffle+take-first-N becomes a permutation of the full
+        // candidate set — every valid pair appears exactly once. This is a
+        // definitive proof of uniform coverage (no pair over- or under-represented).
+        Object p = gen.parseParams(Map.of("range", "10", "count", "66"));  // 66 = capacity for mixed
+        List<Problem> problems = gen.generate(new Random(42), p);
+        Set<String> prompts = new HashSet<>();
+        for (Problem prob : problems) prompts.add(prob.prompt());
+        assertEquals(66, prompts.size(), "every valid pair should appear exactly once at capacity");
+
+        // Spot-check that both orderings of the same numbers appear (commutative balance).
+        assertTrue(prompts.contains("3 + 7"));
+        assertTrue(prompts.contains("7 + 3"));
+        assertTrue(prompts.contains("0 + 10"));
+        assertTrue(prompts.contains("10 + 0"));
+    }
+
+    @Test
+    void empiricalDistributionIsApproximatelyUniform() {
+        // Sample 1000 problems at range=10 (66 valid pairs). With true uniform
+        // sampling each pair is expected ~15 times. Bound the deviation generously
+        // to allow for legitimate sampling variance but catch any 5x-style bias
+        // like the one the old nested-rejection algorithm produced.
+        Object p = gen.parseParams(Map.of("range", "10", "count", "1"));
+        Map<String, Integer> counts = new HashMap<>();
+        Random rng = new Random(42);
+        int trials = 1000;
+        for (int i = 0; i < trials; i++) {
+            Problem prob = gen.generate(rng, p).get(0);
+            counts.merge(prob.prompt(), 1, Integer::sum);
+        }
+        double expected = trials / 66.0;
+        for (Map.Entry<String, Integer> e : counts.entrySet()) {
+            // Allow each pair to deviate up to 3x the expected count.
+            // Old biased algorithm produced 6x for "10 + 0" — this catches that.
+            assertTrue(e.getValue() < expected * 3,
+                    "pair " + e.getKey() + " appeared " + e.getValue()
+                            + " times (expected ~" + expected + "); old algorithm would be ~6x here");
+        }
     }
 }

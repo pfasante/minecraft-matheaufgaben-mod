@@ -2,8 +2,8 @@ package dev.asante.matheaufgabenmod.generator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -71,23 +71,25 @@ public final class MinusGenerator implements Generator {
         if (!(paramsObj instanceof MinusParams params)) {
             throw new IllegalArgumentException("minus: expected MinusParams, got " + paramsObj);
         }
-        Set<Long> seen = new HashSet<>();
-        List<Problem> problems = new ArrayList<>(params.count);
-        int maxAttempts = Math.max(1000, 200 * params.count);
-        for (int i = 0; i < maxAttempts && problems.size() < params.count; i++) {
-            int a = rng.nextInt(params.range + 1);
-            int bUpper = params.negativeResults ? params.range : a;
-            int b = rng.nextInt(bUpper + 1);
-            if (!params.negativeResults && a < b) continue;
-            long key = ((long) a << 32) | b;
-            if (!seen.add(key)) continue;
-            if (!borrowMatches(a, b, params.borrow)) continue;
-            problems.add(new Problem(a + " " + MINUS_SIGN + " " + b, Integer.toString(a - b)));
+        // Enumerate every valid (a, b) pair, shuffle, take first `count`.
+        // Provably uniform via Fisher-Yates. With negative_results=false the pair
+        // space is the lower triangle (a >= b); with =true it's the full square.
+        // parseParams already guarantees count <= pairs.size().
+        List<int[]> pairs = new ArrayList<>();
+        for (int a = 0; a <= params.range; a++) {
+            int bMax = params.negativeResults ? params.range : a;
+            for (int b = 0; b <= bMax; b++) {
+                if (borrowMatches(a, b, params.borrow)) {
+                    pairs.add(new int[]{a, b});
+                }
+            }
         }
-        if (problems.size() < params.count) {
-            throw new ConfigException(
-                    "minus: could not generate " + params.count + " unique problems "
-                            + "under constraints (got " + problems.size() + ")");
+        Collections.shuffle(pairs, rng);
+        List<Problem> problems = new ArrayList<>(params.count);
+        for (int i = 0; i < params.count; i++) {
+            int a = pairs.get(i)[0];
+            int b = pairs.get(i)[1];
+            problems.add(new Problem(a + " " + MINUS_SIGN + " " + b, Integer.toString(a - b)));
         }
         return List.copyOf(problems);
     }
