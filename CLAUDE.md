@@ -52,6 +52,14 @@ The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-min
   by scanning the prompt for the operator character (avoiding an invasive `type` field on
   `Problem`). IOException-tolerant: a failed log goes to SLF4J `warn` and is swallowed so
   the prompt flow never crashes on a disk error.
+- **`budget/`** — `BudgetTracker` runs a 5-state machine (WAITING_FOR_WORLD → WAITING_FOR_BUDGET
+  → ACTIVE → EXPIRED → HARD_TIMEOUT) ticked from `ClientTickEvents.END_CLIENT_TICK`. The
+  `BudgetSurface` interface is the test seam (same pattern as `ClientSurface` in `timer/`).
+  Three Screen subclasses (`BudgetQueryScreen`, `BudgetSoftExpiredScreen`,
+  `BudgetHardTimeoutScreen`) handle entry, soft expiry, and hard expiry; the last
+  has only a "Spiel beenden" button calling `MinecraftClient.scheduleStop()` for graceful
+  save & quit. `BudgetHudRenderer` registers a `HudRenderCallback` for the top-right
+  Restzeit/Schlusszeit overlay. State is session-local — leaving the world resets it.
 - **`MatheaufgabenMod.java`** — the only `ClientModInitializer`. Loads config, builds
   the scheduler with one shared `Random`, registers a `ClientTickEvents.END_CLIENT_TICK`
   listener.
@@ -93,6 +101,6 @@ lives in the design spec under "Non-goals (v1)".
 These features are out of scope for v1 (per the design spec's "Non-goals" list) but the project owner wants them tracked for future iterations:
 
 - [x] ~~Logging feature: log each math task solved or failed, including timestamp.~~ Shipped: see `history/` package and the "History log" README section.
-- [ ] Configurable play-budget timer: allow Minecraft to be played with normal math-task settings for X minutes (configurable) before any math tasks kick in.
+- [x] ~~Configurable play-budget timer: allow Minecraft to be played with normal math-task settings for X minutes (configurable) before any math tasks kick in.~~ Shipped: see `budget/` package and the "Play-budget timer" README section.
 - [ ] Time-limited prompts: after the initial X-minute play budget, math tasks are time-limited and must be solved within Y seconds; on timeout, generate a new task and shorten the interval between new tasks.
 - [ ] Configurable tasks-per-iteration: make the number of math tasks that must be completed in each prompt interruption configurable (default to 1). Currently `PromptScheduler.pickProblem` takes only the first problem from `gen.generate(...)` regardless of the spec's `count`; this TODO would chain N prompts before closing the screen.

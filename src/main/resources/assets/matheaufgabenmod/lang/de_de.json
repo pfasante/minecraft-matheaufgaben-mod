@@ -1,5 +1,18 @@
 {
     "matheaufgabenmod.prompt.title": "Mathe-Aufgabe!",
     "matheaufgabenmod.prompt.submit": "Antworten",
-    "matheaufgabenmod.prompt.wrong": "Falsch — versuch's nochmal"
+    "matheaufgabenmod.prompt.wrong": "Falsch — versuch's nochmal",
+
+    "matheaufgabenmod.budget.query.title": "Wie lange willst du spielen?",
+    "matheaufgabenmod.budget.query.submit": "Los geht's!",
+    "matheaufgabenmod.budget.query.unit": "Minuten",
+    "matheaufgabenmod.budget.query.invalid": "Bitte eine Zahl zwischen 1 und 1440 eingeben",
+
+    "matheaufgabenmod.budget.soft.title": "Zeit ist um!",
+    "matheaufgabenmod.budget.soft.subtitle": "Du hast noch 5 Minuten zum Aufräumen.",
+    "matheaufgabenmod.budget.soft.ok": "OK",
+
+    "matheaufgabenmod.budget.hard.title": "Wirklich Schluss für heute!",
+    "matheaufgabenmod.budget.hard.subtitle": "Drücke „Spiel beenden\", dann wird gespeichert und Minecraft beendet.",
+    "matheaufgabenmod.budget.hard.quit": "Spiel beenden"
 }
