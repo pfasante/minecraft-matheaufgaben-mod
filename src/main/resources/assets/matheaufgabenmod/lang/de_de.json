@@ -5,6 +5,9 @@
     "matheaufgabenmod.prompt.progress": "Aufgabe %s von %s",
 
     "matheaufgabenmod.budget.query.title": "Wie lange willst du spielen?",
+    "matheaufgabenmod.budget.query.preset.30": "30 Minuten",
+    "matheaufgabenmod.budget.query.preset.60": "60 Minuten",
+    "matheaufgabenmod.budget.query.preset.custom": "Eigene Zeit…",
     "matheaufgabenmod.budget.query.submit": "Los geht's!",
     "matheaufgabenmod.budget.query.unit": "Minuten",
     "matheaufgabenmod.budget.query.invalid": "Bitte eine Zahl zwischen 1 und 1440 eingeben",
