@@ -15,7 +15,7 @@
     "mixins": ["matheaufgabenmod.mixins.json"],
     "depends": {
         "fabricloader": ">=0.16",
-        "minecraft": "~1.21.4",
+        "minecraft": ">=1.21.4 <26",
         "java": ">=21",
         "fabric-api": "*"
     }
