@@ -22,8 +22,6 @@ import java.util.function.IntConsumer;
  */
 public final class BudgetQueryScreen extends Screen {
 
-    private static final int DEFAULT_CUSTOM_MINUTES = 30;
-
     private final IntConsumer onSubmit;
     private EditBox inputField;
     private Component feedback = Component.empty();
@@ -70,16 +68,20 @@ public final class BudgetQueryScreen extends Screen {
             ).bounds(cx - btnW / 2, firstY + 2 * (btnH + gap), btnW, btnH).build();
             this.addRenderableWidget(presetCustom);
         } else {
-            // Custom mode: text input + submit button.
+            // Custom mode: empty text input + submit button. The kid taps a digit
+            // immediately — no prefilled value to delete first.
             this.inputField = new EditBox(
                     this.font,
                     cx - 50, cy + 10, 100, 20,
                     Component.translatable("matheaufgabenmod.budget.query.title")
             );
             this.inputField.setMaxLength(4);
-            this.inputField.setValue(Integer.toString(DEFAULT_CUSTOM_MINUTES));
             this.addRenderableWidget(this.inputField);
+            // Two-step focus: setInitialFocus marks the field as the screen's
+            // focus target; setFocused(true) ensures the cursor renders in the
+            // field immediately after a mid-screen rebuildWidgets() switch.
             this.setInitialFocus(this.inputField);
+            this.inputField.setFocused(true);
 
             Button submit = Button.builder(
                     Component.translatable("matheaufgabenmod.budget.query.submit"),
