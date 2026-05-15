@@ -12,7 +12,7 @@ import java.util.function.IntConsumer;
 
 public final class BudgetQueryScreen extends Screen {
 
-    private static final int DEFAULT_MINUTES = 60;
+    private static final int DEFAULT_MINUTES = 30;
 
     private final IntConsumer onSubmit;
     private EditBox inputField;
