@@ -1,20 +1,20 @@
 package dev.asante.matheaufgabenmod.budget;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public final class BudgetSoftExpiredScreen extends Screen {
 
     public BudgetSoftExpiredScreen() {
-        super(Text.translatable("matheaufgabenmod.budget.soft.title"));
+        super(Component.translatable("matheaufgabenmod.budget.soft.title"));
     }
 
     @Override
-    public boolean shouldPause() { return true; }
+    public boolean isPauseScreen() { return true; }
 
     @Override
     public boolean shouldCloseOnEsc() { return true; }
@@ -24,44 +24,43 @@ public final class BudgetSoftExpiredScreen extends Screen {
         int cx = this.width / 2;
         int cy = this.height / 2;
 
-        ButtonWidget ok = ButtonWidget.builder(
-                Text.translatable("matheaufgabenmod.budget.soft.ok"),
-                btn -> close()
-        ).dimensions(cx - 50, cy + 30, 100, 20).build();
-        this.addDrawableChild(ok);
+        Button ok = Button.builder(
+                Component.translatable("matheaufgabenmod.budget.soft.ok"),
+                btn -> onClose()
+        ).bounds(cx - 50, cy + 30, 100, 20).build();
+        this.addRenderableWidget(ok);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 257 || keyCode == 335) {
-            close();
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (event.key() == 257 || event.key() == 335) {
+            onClose();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public void close() {
-        MinecraftClient.getInstance().setScreen(null);
+    public void onClose() {
+        Minecraft.getInstance().setScreen(null);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderBackground(ctx, mouseX, mouseY, delta);
+    public void render(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta);
 
-        TextRenderer tr = this.textRenderer;
+        Font tr = this.font;
         int cx = this.width / 2;
         int titleY = this.height / 2 - 50;
         int subtitleY = this.height / 2 - 10;
 
-        ctx.getMatrices().push();
-        ctx.getMatrices().translate(cx, titleY, 0);
-        ctx.getMatrices().scale(1.5f, 1.5f, 1.0f);
-        ctx.drawCenteredTextWithShadow(tr, this.title, 0, 0, 0xFFFFCC00);
-        ctx.getMatrices().pop();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate((float) cx, (float) titleY);
+        ctx.pose().scale(1.5f, 1.5f);
+        ctx.drawCenteredString(tr, this.title, 0, 0, 0xFFFFCC00);
+        ctx.pose().popMatrix();
 
-        ctx.drawCenteredTextWithShadow(tr, Text.translatable("matheaufgabenmod.budget.soft.subtitle"),
+        ctx.drawCenteredString(tr, Component.translatable("matheaufgabenmod.budget.soft.subtitle"),
                 cx, subtitleY, 0xFFFFFFFF);
     }
 }

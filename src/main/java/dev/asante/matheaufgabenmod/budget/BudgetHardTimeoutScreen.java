@@ -1,20 +1,20 @@
 package dev.asante.matheaufgabenmod.budget;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public final class BudgetHardTimeoutScreen extends Screen {
 
     public BudgetHardTimeoutScreen() {
-        super(Text.translatable("matheaufgabenmod.budget.hard.title"));
+        super(Component.translatable("matheaufgabenmod.budget.hard.title"));
     }
 
     @Override
-    public boolean shouldPause() { return true; }
+    public boolean isPauseScreen() { return true; }
 
     @Override
     public boolean shouldCloseOnEsc() { return false; }
@@ -24,30 +24,29 @@ public final class BudgetHardTimeoutScreen extends Screen {
         int cx = this.width / 2;
         int cy = this.height / 2;
 
-        ButtonWidget quit = ButtonWidget.builder(
-                Text.translatable("matheaufgabenmod.budget.hard.quit"),
-                btn -> MinecraftClient.getInstance().scheduleStop()
-        ).dimensions(cx - 60, cy + 40, 120, 20).build();
-        this.addDrawableChild(quit);
+        Button quit = Button.builder(
+                Component.translatable("matheaufgabenmod.budget.hard.quit"),
+                btn -> Minecraft.getInstance().stop()
+        ).bounds(cx - 60, cy + 40, 120, 20).build();
+        this.addRenderableWidget(quit);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        this.renderBackground(ctx, mouseX, mouseY, delta);
+    public void render(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta);
 
-        TextRenderer tr = this.textRenderer;
+        Font tr = this.font;
         int cx = this.width / 2;
         int titleY = this.height / 2 - 50;
         int subtitleY = this.height / 2 - 10;
 
-        ctx.getMatrices().push();
-        ctx.getMatrices().translate(cx, titleY, 0);
-        ctx.getMatrices().scale(1.5f, 1.5f, 1.0f);
-        ctx.drawCenteredTextWithShadow(tr, this.title, 0, 0, 0xFFFF5555);
-        ctx.getMatrices().pop();
+        ctx.pose().pushMatrix();
+        ctx.pose().translate((float) cx, (float) titleY);
+        ctx.pose().scale(1.5f, 1.5f);
+        ctx.drawCenteredString(tr, this.title, 0, 0, 0xFFFF5555);
+        ctx.pose().popMatrix();
 
-        ctx.drawCenteredTextWithShadow(tr, Text.translatable("matheaufgabenmod.budget.hard.subtitle"),
+        ctx.drawCenteredString(tr, Component.translatable("matheaufgabenmod.budget.hard.subtitle"),
                 cx, subtitleY, 0xFFFFFFFF);
     }
 }

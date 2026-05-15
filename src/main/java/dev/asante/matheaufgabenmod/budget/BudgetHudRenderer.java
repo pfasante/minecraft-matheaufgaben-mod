@@ -1,9 +1,10 @@
 package dev.asante.matheaufgabenmod.budget;
 
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,19 +29,19 @@ public final class BudgetHudRenderer implements HudRenderCallback {
     }
 
     @Override
-    public void onHudRender(DrawContext ctx, net.minecraft.client.render.RenderTickCounter tickCounter) {
+    public void onHudRender(GuiGraphics ctx, DeltaTracker tickCounter) {
         BudgetState s = stateHolder.get();
-        Text label;
+        Component label;
         int colour;
         switch (s.phase()) {
-            case ACTIVE -> { label = Text.literal("Restzeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFFFFFF; }
-            case EXPIRED -> { label = Text.literal("Schlusszeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFF5555; }
+            case ACTIVE -> { label = Component.literal("Restzeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFFFFFF; }
+            case EXPIRED -> { label = Component.literal("Schlusszeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFF5555; }
             default -> { return; }  // no HUD in WAITING_* or HARD_TIMEOUT
         }
-        MinecraftClient client = MinecraftClient.getInstance();
-        int textWidth = client.textRenderer.getWidth(label);
-        int x = ctx.getScaledWindowWidth() - textWidth - RIGHT_MARGIN;
-        ctx.drawTextWithShadow(client.textRenderer, label, x, TOP_MARGIN, colour);
+        Minecraft client = Minecraft.getInstance();
+        int textWidth = client.font.width(label);
+        int x = ctx.guiWidth() - textWidth - RIGHT_MARGIN;
+        ctx.drawString(client.font, label, x, TOP_MARGIN, colour);
     }
 
     static String formatMmSs(int ticks) {
