@@ -64,6 +64,11 @@ public final class ConfigLoader {
                     interval, ModConfig.DEFAULT.intervalMinutes());
             interval = ModConfig.DEFAULT.intervalMinutes();
         }
+        int tasks = raw.tasksPerIteration;
+        if (tasks < 1) {
+            // Includes the JSON-absent case (Gson leaves the int at 0): silently fall back.
+            tasks = ModConfig.DEFAULT.tasksPerIteration();
+        }
         List<String> validSpecs = new ArrayList<>();
         if (raw.sectionSpecs != null) {
             for (String spec : raw.sectionSpecs) {
@@ -81,14 +86,15 @@ public final class ConfigLoader {
         }
         if (validSpecs.isEmpty()) {
             LOGGER.error("[matheaufgabenmod] no valid section specs in config; using defaults");
-            return new ModConfig(interval, ModConfig.DEFAULT.sectionSpecs());
+            return new ModConfig(interval, tasks, ModConfig.DEFAULT.sectionSpecs());
         }
-        return new ModConfig(interval, List.copyOf(validSpecs));
+        return new ModConfig(interval, tasks, List.copyOf(validSpecs));
     }
 
     /** Direct deserialisation target — populated by Gson. */
     private static final class RawConfig {
         int intervalMinutes;
+        int tasksPerIteration;
         List<String> sectionSpecs;
     }
 }

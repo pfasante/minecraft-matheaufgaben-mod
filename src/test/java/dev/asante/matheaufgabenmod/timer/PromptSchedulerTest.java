@@ -25,7 +25,7 @@ class PromptSchedulerTest {
     }
 
     private static ModConfig oneMinute(String... specs) {
-        return new ModConfig(1, List.of(specs));
+        return new ModConfig(1, 1, List.of(specs));
     }
 
     private static void tickN(PromptScheduler sched, FakeClient client, int n) {

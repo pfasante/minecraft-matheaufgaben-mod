@@ -108,5 +108,49 @@ class ConfigLoaderTest {
                     "default spec must parse: " + spec);
         }
         assertTrue(ModConfig.DEFAULT.intervalMinutes() >= 1);
+        assertTrue(ModConfig.DEFAULT.tasksPerIteration() >= 1);
+    }
+
+    @Test
+    void loadsCustomTasksPerIteration(@TempDir Path tmp) throws IOException {
+        Path configFile = tmp.resolve("matheaufgabenmod.json");
+        Files.writeString(configFile, """
+                {
+                  "intervalMinutes": 5,
+                  "tasksPerIteration": 3,
+                  "sectionSpecs": ["plus:range=20,count=1"]
+                }
+                """);
+        ModConfig cfg = ConfigLoader.loadOrCreate(configFile);
+        assertEquals(3, cfg.tasksPerIteration());
+    }
+
+    @Test
+    void tasksPerIterationDefaultsTo1WhenAbsent(@TempDir Path tmp) throws IOException {
+        Path configFile = tmp.resolve("matheaufgabenmod.json");
+        Files.writeString(configFile, """
+                {
+                  "intervalMinutes": 5,
+                  "sectionSpecs": ["plus:range=20,count=1"]
+                }
+                """);
+        ModConfig cfg = ConfigLoader.loadOrCreate(configFile);
+        assertEquals(1, cfg.tasksPerIteration(),
+                "missing field falls back to default (1)");
+    }
+
+    @Test
+    void rejectsTasksPerIterationLessThanOne(@TempDir Path tmp) throws IOException {
+        Path configFile = tmp.resolve("matheaufgabenmod.json");
+        Files.writeString(configFile, """
+                {
+                  "intervalMinutes": 5,
+                  "tasksPerIteration": 0,
+                  "sectionSpecs": ["plus:range=20,count=1"]
+                }
+                """);
+        ModConfig cfg = ConfigLoader.loadOrCreate(configFile);
+        assertEquals(1, cfg.tasksPerIteration(),
+                "invalid (<1) value falls back to default");
     }
 }

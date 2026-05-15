@@ -14,13 +14,16 @@ public final class MinecraftClientSurface implements ClientSurface {
     private final MinecraftClient client;
     private final Supplier<Problem> problemSupplier;
     private final Consumer<HistoryEntry> historyConsumer;
+    private final int tasksPerIteration;
 
     public MinecraftClientSurface(MinecraftClient client,
                                   Supplier<Problem> problemSupplier,
-                                  Consumer<HistoryEntry> historyConsumer) {
+                                  Consumer<HistoryEntry> historyConsumer,
+                                  int tasksPerIteration) {
         this.client = client;
         this.problemSupplier = problemSupplier;
         this.historyConsumer = historyConsumer;
+        this.tasksPerIteration = tasksPerIteration;
     }
 
     @Override
@@ -34,6 +37,6 @@ public final class MinecraftClientSurface implements ClientSurface {
 
     @Override
     public void openPromptScreen(Problem problem) {
-        client.setScreen(new PromptScreen(problemSupplier, problem, historyConsumer));
+        client.setScreen(new PromptScreen(problemSupplier, problem, historyConsumer, tasksPerIteration));
     }
 }

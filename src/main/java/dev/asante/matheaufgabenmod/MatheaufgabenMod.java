@@ -41,9 +41,10 @@ public final class MatheaufgabenMod implements ClientModInitializer {
         budgetHud.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // Math-prompt scheduler tick (unchanged).
+            // Math-prompt scheduler tick.
             ClientSurface promptSurface = new MinecraftClientSurface(
-                    client, scheduler::pickProblem, historyLogger::logAttempt);
+                    client, scheduler::pickProblem, historyLogger::logAttempt,
+                    config.tasksPerIteration());
             scheduler.onTick(promptSurface);
 
             // Budget tick.
@@ -52,7 +53,8 @@ public final class MatheaufgabenMod implements ClientModInitializer {
             budgetTracker.onTick(budgetSurface);
         });
 
-        LOGGER.info("[{}] initialised — interval={} min, {} section spec(s), history={}, budget-timer enabled",
-                MOD_ID, config.intervalMinutes(), config.sectionSpecs().size(), historyPath);
+        LOGGER.info("[{}] initialised — interval={} min, {} tasks/iteration, {} section spec(s), history={}, budget-timer enabled",
+                MOD_ID, config.intervalMinutes(), config.tasksPerIteration(),
+                config.sectionSpecs().size(), historyPath);
     }
 }

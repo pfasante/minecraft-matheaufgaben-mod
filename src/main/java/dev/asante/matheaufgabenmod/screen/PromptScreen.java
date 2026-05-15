@@ -18,17 +18,21 @@ public final class PromptScreen extends Screen {
 
     private final Supplier<Problem> problemSupplier;
     private final Consumer<HistoryEntry> historyConsumer;
+    private final int totalTasks;
     private Problem currentProblem;
     private TextFieldWidget inputField;
     private Text feedback = Text.empty();
     private long attemptStartNanos;
+    /** 0-based index of the task currently being attempted. Advances only on correct answer. */
+    private int currentIndex = 0;
 
     public PromptScreen(Supplier<Problem> problemSupplier, Problem initialProblem,
-                        Consumer<HistoryEntry> historyConsumer) {
+                        Consumer<HistoryEntry> historyConsumer, int totalTasks) {
         super(Text.translatable("matheaufgabenmod.prompt.title"));
         this.problemSupplier = problemSupplier;
         this.currentProblem = initialProblem;
         this.historyConsumer = historyConsumer;
+        this.totalTasks = Math.max(1, totalTasks);
         this.attemptStartNanos = System.nanoTime();
     }
 
@@ -80,6 +84,15 @@ public final class PromptScreen extends Screen {
         historyConsumer.accept(HistoryEntry.fromAttempt(currentProblem, given, correct, duration));
 
         if (correct) {
+            if (currentIndex + 1 < totalTasks) {
+                // More tasks remaining in this iteration — advance to the next.
+                currentIndex++;
+                currentProblem = problemSupplier.get();
+                inputField.setText("");
+                feedback = Text.empty();
+                attemptStartNanos = System.nanoTime();
+                return;
+            }
             MinecraftClient.getInstance().setScreen(null);
             return;
         }
@@ -97,6 +110,7 @@ public final class PromptScreen extends Screen {
         TextRenderer tr = this.textRenderer;
         int cx = this.width / 2;
         int titleY = this.height / 2 - 70;
+        int progressY = this.height / 2 - 50;
         int promptY = this.height / 2 - 30;
         int feedbackY = this.height / 2 + 70;
 
@@ -106,6 +120,13 @@ public final class PromptScreen extends Screen {
         ctx.getMatrices().scale(1.5f, 1.5f, 1.0f);
         ctx.drawCenteredTextWithShadow(tr, this.title, 0, 0, 0xFFFFFFFF);
         ctx.getMatrices().pop();
+
+        // Progress indicator "Aufgabe X von Y" — only when more than 1 task.
+        if (totalTasks > 1) {
+            Text progress = Text.translatable("matheaufgabenmod.prompt.progress",
+                    currentIndex + 1, totalTasks);
+            ctx.drawCenteredTextWithShadow(tr, progress, cx, progressY, 0xFFAAAAAA);
+        }
 
         // Prompt text (2x scale)
         ctx.getMatrices().push();

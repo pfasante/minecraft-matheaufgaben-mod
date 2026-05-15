@@ -2,6 +2,7 @@
     "matheaufgabenmod.prompt.title": "Mathe-Aufgabe!",
     "matheaufgabenmod.prompt.submit": "Antworten",
     "matheaufgabenmod.prompt.wrong": "Falsch — versuch's nochmal",
+    "matheaufgabenmod.prompt.progress": "Aufgabe %s von %s",
 
     "matheaufgabenmod.budget.query.title": "Wie lange willst du spielen?",
     "matheaufgabenmod.budget.query.submit": "Los geht's!",
