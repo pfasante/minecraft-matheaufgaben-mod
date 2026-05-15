@@ -24,4 +24,5 @@ Thumbs.db
 
 # Deployment artifacts (locally produced, not source-controlled)
 fabric-installer-*.exe
+fabric-api-*.jar
 matheaufgabenmod-windows-deploy.zip

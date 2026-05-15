@@ -18,8 +18,8 @@ public final class HistoryLogger {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("matheaufgabenmod");
     static final String HEADER = String.format(
-            "%-19s  %-10s  %-13s  %-9s  %-9s  %-7s  %s",
-            "timestamp", "type", "prompt", "expected", "given", "result", "duration_s");
+            "%-19s  %-16s  %-10s  %-13s  %-9s  %-9s  %-7s  %s",
+            "timestamp", "player", "type", "prompt", "expected", "given", "result", "duration_s");
 
     private final Path file;
 

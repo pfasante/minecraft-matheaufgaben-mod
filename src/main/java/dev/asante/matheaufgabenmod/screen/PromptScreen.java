@@ -19,6 +19,7 @@ public final class PromptScreen extends Screen {
     private final Supplier<Problem> problemSupplier;
     private final Consumer<HistoryEntry> historyConsumer;
     private final int totalTasks;
+    private final String player;
     private Problem currentProblem;
     private EditBox inputField;
     private Component feedback = Component.empty();
@@ -27,12 +28,13 @@ public final class PromptScreen extends Screen {
     private int currentIndex = 0;
 
     public PromptScreen(Supplier<Problem> problemSupplier, Problem initialProblem,
-                        Consumer<HistoryEntry> historyConsumer, int totalTasks) {
+                        Consumer<HistoryEntry> historyConsumer, int totalTasks, String player) {
         super(Component.translatable("matheaufgabenmod.prompt.title"));
         this.problemSupplier = problemSupplier;
         this.currentProblem = initialProblem;
         this.historyConsumer = historyConsumer;
         this.totalTasks = Math.max(1, totalTasks);
+        this.player = player;
         this.attemptStartNanos = System.nanoTime();
     }
 
@@ -81,7 +83,7 @@ public final class PromptScreen extends Screen {
         String given = inputField.getValue();
         boolean correct = checkAnswer(currentProblem, given);
         Duration duration = Duration.ofNanos(System.nanoTime() - attemptStartNanos);
-        historyConsumer.accept(HistoryEntry.fromAttempt(currentProblem, given, correct, duration));
+        historyConsumer.accept(HistoryEntry.fromAttempt(currentProblem, player, given, correct, duration));
 
         if (correct) {
             if (currentIndex + 1 < totalTasks) {

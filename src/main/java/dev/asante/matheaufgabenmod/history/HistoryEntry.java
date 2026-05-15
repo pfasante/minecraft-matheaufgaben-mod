@@ -9,10 +9,14 @@ import java.time.format.DateTimeFormatter;
 /**
  * One row of the math-task history log. Constructed via {@link #fromAttempt} which
  * stamps the current wall-clock time and derives the generator type by inspecting
- * the prompt for the operator character.
+ * the prompt for the operator character. The {@code player} field carries the
+ * Minecraft username at attempt time so a shared machine can distinguish which
+ * kid was playing — the caller (PromptScreen) reads it from the production-side
+ * Minecraft client and passes it in.
  */
 public record HistoryEntry(
         OffsetDateTime timestamp,
+        String player,
         String type,
         String prompt,
         String expected,
@@ -21,9 +25,11 @@ public record HistoryEntry(
         Duration duration
 ) {
 
-    public static HistoryEntry fromAttempt(Problem problem, String given, boolean correct, Duration duration) {
+    public static HistoryEntry fromAttempt(Problem problem, String player, String given,
+                                           boolean correct, Duration duration) {
         return new HistoryEntry(
                 OffsetDateTime.now(),
+                player,
                 inferType(problem.prompt()),
                 problem.prompt(),
                 problem.answer(),
@@ -55,8 +61,9 @@ public record HistoryEntry(
         String ts = timestamp.format(LOCAL_TIMESTAMP);
         double seconds = duration.toMillis() / 1000.0;
         return String.format(java.util.Locale.ROOT,
-                "%-19s  %-10s  %-13s  %-9s  %-9s  %-7s  %.2f",
+                "%-19s  %-16s  %-10s  %-13s  %-9s  %-9s  %-7s  %.2f",
                 ts,
+                player,
                 type,
                 prompt,
                 expected,

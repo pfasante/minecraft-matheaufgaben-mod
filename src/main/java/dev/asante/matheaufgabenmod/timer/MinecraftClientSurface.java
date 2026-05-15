@@ -37,6 +37,7 @@ public final class MinecraftClientSurface implements ClientSurface {
 
     @Override
     public void openPromptScreen(Problem problem) {
-        client.setScreen(new PromptScreen(problemSupplier, problem, historyConsumer, tasksPerIteration));
+        String player = client.getUser().getName();
+        client.setScreen(new PromptScreen(problemSupplier, problem, historyConsumer, tasksPerIteration, player));
     }
 }
