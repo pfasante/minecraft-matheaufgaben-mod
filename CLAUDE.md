@@ -4,21 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A Fabric client-side mod for Minecraft Java Edition 1.21.x. Interrupts singleplayer
-gameplay every X minutes with a math prompt; the kid must answer correctly to resume.
-Four problem types (plus, minus, einmaleins, division), each parameterised through a
-`type:k=v[,k=v...]` section spec in the JSON config.
+A Fabric client-side mod for **Minecraft Java Edition 26.1.2** (Java 25 runtime).
+Interrupts singleplayer gameplay every X minutes with a math prompt; the kid must
+answer correctly to resume. Four problem types (plus, minus, einmaleins, division),
+each parameterised through a `type:k=v[,k=v...]` section spec in the JSON config.
+A separate play-budget timer caps total session play time with graceful save & quit
+at expiry.
 
-The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-minecraft-matheaufgaben-mod-design.md` — read that before proposing scope expansions.
+The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-minecraft-matheaufgaben-mod-design.md` — read that before proposing scope expansions. The MC-26 port playbook is in `migration-mojang-mappings.md`.
+
+**Mapping note**: MC 26.x ships with official names baked in — no Yarn, no separate Mojmap remap. The build has no `mappings` line; `GuiGraphics` is `GuiGraphicsExtractor`, `Screen.render` is `Screen.extractRenderState`, etc.
 
 ## Common commands
 
+All gradle invocations need `JAVA_HOME` pointing at JDK 25 (system default may differ):
+
 ```sh
-./gradlew build                           # compile + test + assemble jar
-./gradlew test                            # JUnit only (fast)
-./gradlew test --tests PlusGeneratorTest  # one suite
-./gradlew runClient                       # launch dev Minecraft instance
-./gradlew genSources                      # decompile MC sources for IDE navigation
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk ./gradlew build                           # compile + test + assemble jar
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk ./gradlew test                            # JUnit only (fast)
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk ./gradlew test --tests PlusGeneratorTest  # one suite
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk ./gradlew runClient                       # launch dev Minecraft instance
 ```
 
 ## Architecture (the seams that matter)
@@ -48,18 +53,26 @@ The full design and the YAGNI list are in `docs/superpowers/specs/2026-05-10-min
   booting Minecraft.
 - **`history/`** — `HistoryLogger` appends one fixed-width row per math-task submission to
   `<minecraft>/config/matheaufgabenmod-history.log` (column widths chosen for human reading;
-  2-space separators between fields). `HistoryEntry.fromAttempt` derives the generator type
-  by scanning the prompt for the operator character (avoiding an invasive `type` field on
-  `Problem`). IOException-tolerant: a failed log goes to SLF4J `warn` and is swallowed so
-  the prompt flow never crashes on a disk error.
+  2-space separators between fields). Columns: `timestamp`, `player` (Mojang username at
+  attempt time — distinguishes shared-machine accounts), `type`, `prompt`, `expected`,
+  `given`, `result`, `duration_s`. `HistoryEntry.fromAttempt` derives the generator type by
+  scanning the prompt for the operator character (avoiding an invasive `type` field on
+  `Problem`); `MinecraftClientSurface.openPromptScreen` reads `Minecraft.getInstance().getUser().getName()`
+  and passes it to the screen so the pure-Java `history/` package stays free of Minecraft
+  imports. IOException-tolerant: a failed log goes to SLF4J `warn` and is swallowed so the
+  prompt flow never crashes on a disk error.
 - **`budget/`** — `BudgetTracker` runs a 5-state machine (WAITING_FOR_WORLD → WAITING_FOR_BUDGET
   → ACTIVE → EXPIRED → HARD_TIMEOUT) ticked from `ClientTickEvents.END_CLIENT_TICK`. The
   `BudgetSurface` interface is the test seam (same pattern as `ClientSurface` in `timer/`).
   Three Screen subclasses (`BudgetQueryScreen`, `BudgetSoftExpiredScreen`,
-  `BudgetHardTimeoutScreen`) handle entry, soft expiry, and hard expiry; the last
-  has only a "Spiel beenden" button calling `MinecraftClient.scheduleStop()` for graceful
-  save & quit. `BudgetHudRenderer` registers a `HudRenderCallback` for the top-right
-  Restzeit/Schlusszeit overlay. State is session-local — leaving the world resets it.
+  `BudgetHardTimeoutScreen`) handle entry, soft expiry, and hard expiry. `BudgetQueryScreen`
+  starts in preset mode with three buttons (30 min / 60 min / "Eigene Zeit…"); the custom
+  option calls `rebuildWidgets()` to swap the panel to a text-input flow. `BudgetHardTimeoutScreen`
+  has only a "Spiel beenden" button calling `Minecraft.getInstance().stop()` for graceful
+  save & quit. `BudgetHudRenderer` implements `HudElement` and registers via
+  `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, ...)` for the
+  top-right Restzeit/Schlusszeit overlay — the 26.x extract-then-render pattern replaces
+  the 1.21.x `HudRenderCallback`. State is session-local — leaving the world resets it.
 - **`MatheaufgabenMod.java`** — the only `ClientModInitializer`. Loads config, builds
   the scheduler with one shared `Random`, registers a `ClientTickEvents.END_CLIENT_TICK`
   listener.
