@@ -4,7 +4,7 @@ import dev.asante.matheaufgabenmod.generator.Problem;
 import dev.asante.matheaufgabenmod.history.HistoryEntry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -105,8 +105,8 @@ public final class PromptScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
 
         Font tr = this.font;
         int cx = this.width / 2;
@@ -119,26 +119,26 @@ public final class PromptScreen extends Screen {
         ctx.pose().pushMatrix();
         ctx.pose().translate((float) cx, (float) titleY);
         ctx.pose().scale(1.5f, 1.5f);
-        ctx.drawCenteredString(tr, this.title, 0, 0, 0xFFFFFFFF);
+        ctx.centeredText(tr, this.title, 0, 0, 0xFFFFFFFF);
         ctx.pose().popMatrix();
 
         // Progress indicator "Aufgabe X von Y" — only when more than 1 task.
         if (totalTasks > 1) {
             Component progress = Component.translatable("matheaufgabenmod.prompt.progress",
                     currentIndex + 1, totalTasks);
-            ctx.drawCenteredString(tr, progress, cx, progressY, 0xFFAAAAAA);
+            ctx.centeredText(tr, progress, cx, progressY, 0xFFAAAAAA);
         }
 
         // Prompt text (2x scale)
         ctx.pose().pushMatrix();
         ctx.pose().translate((float) cx, (float) promptY);
         ctx.pose().scale(2.0f, 2.0f);
-        ctx.drawCenteredString(tr, currentProblem.prompt() + " =", 0, 0, 0xFFFFFFFF);
+        ctx.centeredText(tr, currentProblem.prompt() + " =", 0, 0, 0xFFFFFFFF);
         ctx.pose().popMatrix();
 
         // Feedback (red)
         if (!feedback.getString().isEmpty()) {
-            ctx.drawCenteredString(tr, feedback, cx, feedbackY, 0xFFFF5555);
+            ctx.centeredText(tr, feedback, cx, feedbackY, 0xFFFF5555);
         }
     }
 }
