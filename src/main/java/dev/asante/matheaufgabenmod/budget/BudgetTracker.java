@@ -37,7 +37,7 @@ public final class BudgetTracker {
         }
 
         // 3. Fire one-shot callbacks on phase transitions.
-        if (before.phase() != BudgetPhase.EXPIRED && state.phase() == BudgetPhase.EXPIRED) {
+        if (before.phase() != BudgetPhase.WARNING && state.phase() == BudgetPhase.WARNING) {
             surface.openSoftExpired();
         }
         if (before.phase() != BudgetPhase.HARD_TIMEOUT && state.phase() == BudgetPhase.HARD_TIMEOUT) {

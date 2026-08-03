@@ -44,7 +44,7 @@ public final class BudgetHudRenderer implements HudElement {
         int colour;
         switch (s.phase()) {
             case ACTIVE -> { label = Component.literal("Restzeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFFFFFF; }
-            case EXPIRED -> { label = Component.literal("Schlusszeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFF5555; }
+            case WARNING -> { label = Component.literal("Schlusszeit: " + formatMmSs(s.remainingTicks())); colour = 0xFFFF5555; }
             default -> { return; }  // no HUD in WAITING_* or HARD_TIMEOUT
         }
         Minecraft client = Minecraft.getInstance();
