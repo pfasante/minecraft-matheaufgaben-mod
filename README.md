@@ -11,14 +11,7 @@ multiplication tables (`einmaleins`), and division (`division`) — each with ex
 configurable constraints (range, carry/borrow requirement, factor rows, divisor sets,
 optional remainders).
 
-## Install (the easy way: deploy archive)
-
-For Windows installs, see the prebuilt **`matheaufgabenmod-windows-deploy.zip`** at the
-repo root — it bundles the Fabric installer, the matching Fabric API jar, the mod jar,
-and a step-by-step `INSTALL.md`. Drop the zip on the kid's machine, unzip, follow the
-instructions. ~5 minutes total.
-
-## Install (manual)
+## Install
 
 1. Install [Fabric Loader](https://fabricmc.net/use/installer/) and select **MC 26.1.2**
    during the install. Java 25 is required at runtime; the Mojang Launcher will download
