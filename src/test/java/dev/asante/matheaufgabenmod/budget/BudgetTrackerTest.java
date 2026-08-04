@@ -18,14 +18,14 @@ class BudgetTrackerTest {
         boolean hasWorld = false;
         boolean isPaused = false;
         IntConsumer pendingBudgetCallback;
-        int softExpiredCount = 0;
+        int warningCount = 0;
         int hardTimeoutCount = 0;
         final List<BudgetState> hudHistory = new ArrayList<>();
 
         @Override public boolean hasWorld() { return hasWorld; }
         @Override public boolean isPaused() { return isPaused; }
         @Override public void openBudgetQuery(IntConsumer onSubmit) { this.pendingBudgetCallback = onSubmit; }
-        @Override public void openSoftExpired() { softExpiredCount++; }
+        @Override public void openWarning() { warningCount++; }
         @Override public void openHardTimeout() { hardTimeoutCount++; }
         @Override public void updateHud(BudgetState s) { hudHistory.add(s); }
     }
@@ -88,7 +88,7 @@ class BudgetTrackerTest {
     }
 
     @Test
-    void crossingWarningBoundaryFiresSoftExpiredExactlyOnce() {
+    void crossingWarningBoundaryFiresWarningExactlyOnce() {
         BudgetTracker t = new BudgetTracker();
         FakeSurface s = new FakeSurface();
         s.hasWorld = true;
@@ -96,9 +96,9 @@ class BudgetTrackerTest {
         s.pendingBudgetCallback.accept(10);  // 10-minute budget, long enough for a warning window
         tickN(t, s, 10 * TPM - WARNING_TICKS);
         assertEquals(BudgetPhase.WARNING, t.state().phase());
-        assertEquals(1, s.softExpiredCount, "soft-expired called once on transition");
+        assertEquals(1, s.warningCount, "warning called once on transition");
         tickN(t, s, 100);
-        assertEquals(1, s.softExpiredCount, "and not again while in WARNING");
+        assertEquals(1, s.warningCount, "and not again while in WARNING");
     }
 
     @Test
@@ -113,6 +113,19 @@ class BudgetTrackerTest {
         assertEquals(1, s.hardTimeoutCount);
         tickN(t, s, 100);
         assertEquals(1, s.hardTimeoutCount, "no repeat firing in HARD_TIMEOUT");
+    }
+
+    @Test
+    void shortBudgetSkipsWarningAndGoesStraightToHardTimeout() {
+        BudgetTracker t = new BudgetTracker();
+        FakeSurface s = new FakeSurface();
+        s.hasWorld = true;
+        t.onTick(s);
+        s.pendingBudgetCallback.accept(1);  // 1-minute budget, shorter than the 5-min warning window
+        tickN(t, s, TPM);
+        assertEquals(BudgetPhase.HARD_TIMEOUT, t.state().phase());
+        assertEquals(0, s.warningCount, "warning window skipped for budgets <= WARNING_TICKS");
+        assertEquals(1, s.hardTimeoutCount);
     }
 
     @Test
