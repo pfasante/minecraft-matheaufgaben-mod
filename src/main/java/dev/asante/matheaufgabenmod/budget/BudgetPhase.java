@@ -5,6 +5,6 @@ public enum BudgetPhase {
     WAITING_FOR_WORLD,
     WAITING_FOR_BUDGET,
     ACTIVE,
-    EXPIRED,
+    WARNING,
     HARD_TIMEOUT
 }

@@ -28,8 +28,8 @@ public final class MinecraftBudgetSurface implements BudgetSurface {
     }
 
     @Override
-    public void openSoftExpired() {
-        client.setScreen(new BudgetSoftExpiredScreen());
+    public void openWarning() {
+        client.setScreen(new BudgetWarningScreen());
     }
 
     @Override

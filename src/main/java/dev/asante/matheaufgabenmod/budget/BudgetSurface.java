@@ -14,8 +14,8 @@ public interface BudgetSurface {
     /** Open the modal "how many minutes?" screen; invoke the consumer with the user's choice. */
     void openBudgetQuery(IntConsumer onSubmit);
 
-    /** Open the dismissable "Zeit ist um" popup. */
-    void openSoftExpired();
+    /** Open the dismissable pre-expiry warning popup. */
+    void openWarning();
 
     /** Open the undismissable "Spiel beenden" popup. */
     void openHardTimeout();

@@ -62,16 +62,18 @@ JAVA_HOME=/usr/lib/jvm/java-25-openjdk ./gradlew runClient                      
   imports. IOException-tolerant: a failed log goes to SLF4J `warn` and is swallowed so the
   prompt flow never crashes on a disk error.
 - **`budget/`** — `BudgetTracker` runs a 5-state machine (WAITING_FOR_WORLD → WAITING_FOR_BUDGET
-  → ACTIVE → EXPIRED → HARD_TIMEOUT) ticked from `ClientTickEvents.END_CLIENT_TICK`. The
-  `BudgetSurface` interface is the test seam (same pattern as `ClientSurface` in `timer/`).
-  Three Screen subclasses (`BudgetQueryScreen`, `BudgetSoftExpiredScreen`,
-  `BudgetHardTimeoutScreen`) handle entry, soft expiry, and hard expiry. `BudgetQueryScreen`
-  starts in preset mode with three buttons (30 min / 60 min / "Eigene Zeit…"); the custom
-  option calls `rebuildWidgets()` to swap the panel to a text-input flow. `BudgetHardTimeoutScreen`
-  has only a "Spiel beenden" button calling `Minecraft.getInstance().stop()` for graceful
-  save & quit. `BudgetHudRenderer` implements `HudElement` and registers via
-  `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, ...)` for the
-  top-right Restzeit/Schlusszeit overlay — the 26.x extract-then-render pattern replaces
+  → ACTIVE → WARNING → HARD_TIMEOUT) ticked from `ClientTickEvents.END_CLIENT_TICK`. `WARNING`
+  fires 5 minutes *before* the chosen budget runs out (not after) and `HARD_TIMEOUT` fires at
+  exactly the chosen budget — total playtime equals exactly what the kid picked. Budgets ≤ 5
+  minutes skip `WARNING` entirely. The `BudgetSurface` interface is the test seam (same pattern
+  as `ClientSurface` in `timer/`). Three Screen subclasses (`BudgetQueryScreen`,
+  `BudgetWarningScreen`, `BudgetHardTimeoutScreen`) handle entry, pre-expiry warning, and hard
+  expiry. `BudgetQueryScreen` starts in preset mode with three buttons (30 min / 60 min /
+  "Eigene Zeit…"); the custom option calls `rebuildWidgets()` to swap the panel to a
+  text-input flow. `BudgetHardTimeoutScreen` has only a "Spiel beenden" button calling
+  `Minecraft.getInstance().stop()` for graceful save & quit. `BudgetHudRenderer` implements
+  `HudElement` and registers via `HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, ...)`
+  for the top-right Restzeit/Schlusszeit overlay — the 26.x extract-then-render pattern replaces
   the 1.21.x `HudRenderCallback`. State is session-local — leaving the world resets it.
 - **`MatheaufgabenMod.java`** — the only `ClientModInitializer`. Loads config, builds
   the scheduler with one shared `Random`, registers a `ClientTickEvents.END_CLIENT_TICK`

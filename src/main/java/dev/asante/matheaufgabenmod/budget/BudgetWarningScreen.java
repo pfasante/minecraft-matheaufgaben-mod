@@ -7,9 +7,9 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class BudgetSoftExpiredScreen extends Screen {
+public final class BudgetWarningScreen extends Screen {
 
-    public BudgetSoftExpiredScreen() {
+    public BudgetWarningScreen() {
         super(Component.translatable("matheaufgabenmod.budget.soft.title"));
     }
 

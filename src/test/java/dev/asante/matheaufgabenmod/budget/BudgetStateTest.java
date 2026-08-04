@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class BudgetStateTest {
 
-    private static final int TPM = BudgetState.TICKS_PER_MINUTE; // 1200
-    private static final int GRACE = BudgetState.GRACE_TICKS;    // 6000 (5 min)
+    private static final int TPM = BudgetState.TICKS_PER_MINUTE;     // 1200
+    private static final int WARNING_TICKS = BudgetState.WARNING_TICKS;    // 6000 (5 min)
 
     @Test
     void initialIsWaitingForWorldWithNoBudget() {
@@ -77,24 +77,39 @@ class BudgetStateTest {
     }
 
     @Test
-    void tickAtBudgetBoundaryTransitionsToExpired() {
-        BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(1);  // 1200 ticks
-        for (int i = 0; i < TPM - 1; i++) s = s.tick();
+    void tickAtWarningBoundaryTransitionsToWarning() {
+        // 10-minute budget: the 5-min warning window opens 5 minutes before the end,
+        // i.e. once 5 of the 10 minutes have elapsed.
+        BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(10);
+        int warningBoundary = s.budgetTicks() - WARNING_TICKS;
+        for (int i = 0; i < warningBoundary - 1; i++) s = s.tick();
         assertEquals(BudgetPhase.ACTIVE, s.phase());
-        s = s.tick();  // 1200th tick
-        assertEquals(BudgetPhase.EXPIRED, s.phase());
+        s = s.tick();
+        assertEquals(BudgetPhase.WARNING, s.phase());
     }
 
     @Test
-    void tickInExpiredAccumulatesGraceUntilHardTimeout() {
-        BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(1);
-        for (int i = 0; i < TPM; i++) s = s.tick();
-        assertEquals(BudgetPhase.EXPIRED, s.phase());
-        // Need GRACE more ticks to hit HARD_TIMEOUT.
-        for (int i = 0; i < GRACE - 1; i++) s = s.tick();
-        assertEquals(BudgetPhase.EXPIRED, s.phase());
+    void tickInWarningAccumulatesUntilHardTimeout() {
+        BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(10);
+        int warningBoundary = s.budgetTicks() - WARNING_TICKS;
+        for (int i = 0; i < warningBoundary; i++) s = s.tick();
+        assertEquals(BudgetPhase.WARNING, s.phase());
+        // Need WARNING_TICKS more ticks to reach the actual budget end.
+        for (int i = 0; i < WARNING_TICKS - 1; i++) s = s.tick();
+        assertEquals(BudgetPhase.WARNING, s.phase());
         s = s.tick();
         assertEquals(BudgetPhase.HARD_TIMEOUT, s.phase());
+    }
+
+    @Test
+    void shortBudgetSkipsWarningPhaseEntirely() {
+        // A 5-minute budget equals WARNING_TICKS exactly — still too short to carve
+        // out a separate warning window, so it must go straight to HARD_TIMEOUT.
+        BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(5);
+        for (int i = 0; i < WARNING_TICKS - 1; i++) s = s.tick();
+        assertEquals(BudgetPhase.ACTIVE, s.phase(), "still active one tick before the end");
+        s = s.tick();
+        assertEquals(BudgetPhase.HARD_TIMEOUT, s.phase(), "5-min budget skips WARNING entirely");
     }
 
     @Test
@@ -102,15 +117,18 @@ class BudgetStateTest {
         BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(2);  // 2400 ticks
         for (int i = 0; i < TPM; i++) s = s.tick();  // halfway
         assertEquals(TPM, s.remainingTicks(), "halfway through 2-min budget = 1 min remaining");
-        for (int i = 0; i < TPM; i++) s = s.tick();
-        assertEquals(BudgetPhase.EXPIRED, s.phase());
-        assertEquals(GRACE, s.remainingTicks(), "just-expired: full grace remaining");
+
+        BudgetState w = BudgetState.initial().worldLoaded().budgetSubmitted(10);
+        int warningBoundary = w.budgetTicks() - WARNING_TICKS;
+        for (int i = 0; i < warningBoundary; i++) w = w.tick();
+        assertEquals(BudgetPhase.WARNING, w.phase());
+        assertEquals(WARNING_TICKS, w.remainingTicks(), "just-entered WARNING: full warning window remaining");
     }
 
     @Test
     void hardTimeoutTicksAreNoOps() {
         BudgetState s = BudgetState.initial().worldLoaded().budgetSubmitted(1);
-        for (int i = 0; i < TPM + GRACE; i++) s = s.tick();
+        for (int i = 0; i < TPM; i++) s = s.tick();
         assertEquals(BudgetPhase.HARD_TIMEOUT, s.phase());
         int elapsedAtTimeout = s.elapsedTicks();
         BudgetState after = s.tick().tick().tick();
