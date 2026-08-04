@@ -69,11 +69,12 @@ options:
 - **60 Minuten** — one click, plays for 60 minutes.
 - **Eigene Zeit…** — reveals a text field for any value from 1 to 1440 minutes.
 
-A HUD in the top-right shows the remaining time as `Restzeit: MM:SS` in white. When the
-budget runs out, a "Zeit ist um!" popup appears that can be dismissed; the kid then has a
-5-minute grace period (HUD turns red and counts down `Schlusszeit: M:SS`) to reach a
-save point. After grace, a forced-quit popup appears with only a "Spiel beenden" button
-— clicking it triggers Minecraft's normal save-and-quit. No data is lost.
+A HUD in the top-right shows the remaining time as `Restzeit: MM:SS` in white. Five minutes
+before the budget runs out, a "Gleich ist Schluss!" popup appears that can be dismissed as a
+heads-up to wrap up (HUD turns red and counts down `Schlusszeit: M:SS`); budgets of 5 minutes
+or less skip this warning. When the chosen budget is fully used up, a forced-quit popup appears
+with only a "Spiel beenden" button — clicking it triggers Minecraft's normal save-and-quit. No
+data is lost. Total playtime always equals the chosen budget exactly.
 
 The budget pauses automatically whenever the game is paused (game menu, math prompt, the
 budget popups themselves). Leaving the world to title and re-entering re-prompts for a
