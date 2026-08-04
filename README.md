@@ -26,7 +26,9 @@ instructions. ~5 minutes total.
 2. Launch the Fabric profile once to create `<minecraft>/mods/`. Quit.
 3. Drop these two files into `<minecraft>/mods/`:
    - **`fabric-api-0.149.0+26.1.2.jar`** (the Fabric API runtime library)
-   - **`matheaufgabenmod-0.1.0.jar`** (built from this repo via `./gradlew build`)
+   - **`matheaufgabenmod-<version>.jar`** — download the latest from the
+     [Releases page](https://github.com/pfasante/minecraft-matheaufgaben-mod/releases/latest),
+     or build it yourself from this repo via `./gradlew build` (see [Build](#build) below).
 4. Launch Minecraft. On entering a world, a budget-query screen appears with three
    preset buttons (30 min, 60 min, or "Eigene Zeit…" for a custom value).
 5. The mod creates `<minecraft>/config/matheaufgabenmod.json` with defaults on first
